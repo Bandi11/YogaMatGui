@@ -1,0 +1,1 @@
+The pics directory is needed for storing heatmaps during runtime.
