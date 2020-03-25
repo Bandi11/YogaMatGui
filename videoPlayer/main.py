@@ -40,46 +40,51 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
     def progressBarValueChange(self):
         newPos = self.ProgressBar.value()
         self.mediaPlayer.setPosition(newPos)
-        if self.mediaPlayer.state() == Media.QMediaPlayer.PausedState:
+        if self.mediaPlayer.state() == Media.QMediaPlayer.PausedState or\
+                self.mediaPlayer.state() == Media.QMediaPlayer.StoppedState:
             self.pausedPosition = newPos
 
     def changeHeatMapdisplay(self):
         hmc.plot_pressure(self.df, self.heatMapIndex)
+        # self.heatMap.setScaledContents(True)
         self.heatMap.setPixmap(QPixmap("pics/HM{index}.svg".format(index=self.heatMapIndex)))
 
     def generateDF(self):
         self.df = hmc.createDF(self.pathToCSV)
 
     def positionChanged(self, position):
-        self.ProgressBar.setValue(position)
-        absSec = int(position/1000)
-        posSec = absSec
-        posMin = 0
-        posH = 0
-        if posSec >= 60:
-            posMin = int(posSec/60)
-            posSec = posSec % 60
-        if posMin >= 60:
-            posH = int(posMin/60)
-            posMin = posMin % 60
+        if self.mediaPlayer.StoppedState == self.mediaPlayer.state():
+            pass
+        else:
+            self.ProgressBar.setValue(position)
+            absSec = int(position/1000)
+            posSec = absSec
+            posMin = 0
+            posH = 0
+            if posSec >= 60:
+                posMin = int(posSec/60)
+                posSec = posSec % 60
+            if posMin >= 60:
+                posH = int(posMin/60)
+                posMin = posMin % 60
 
-        durSec = int(self.currentVideoDuration/1000)
-        durMin = 0
-        durH = 0
-        if durSec >= 60:
-            durMin = int(durSec/60)
-            durSec = durSec % 60
-        if durMin >= 60:
-            durH = int(durMin/60)
-            durMin = durMin % 60
-        self.progressLabel.setText("{posH}:{posMin}:{posSec}/{durH}:{durMin}:{durSec}".
-                                   format(posH=posH, posMin=posMin, posSec=posSec, durH=durH, durMin=durMin, durSec=durSec))
-        self.heatMapIndex = absSec
-        self.changeHeatMapdisplay()
+            durSec = int(self.currentVideoDuration/1000)
+            durMin = 0
+            durH = 0
+            if durSec >= 60:
+                durMin = int(durSec/60)
+                durSec = durSec % 60
+            if durMin >= 60:
+                durH = int(durMin/60)
+                durMin = durMin % 60
+            self.progressLabel.setText("{posH}:{posMin}:{posSec}/{durH}:{durMin}:{durSec}".
+                                       format(posH=posH, posMin=posMin, posSec=posSec, durH=durH, durMin=durMin, durSec=durSec))
+            self.heatMapIndex = absSec
+            self.changeHeatMapdisplay()
 
-        if position == self.currentVideoDuration:
-            for i in range(0,absSec+1):
-                os.remove("pics/HM{index}.svg".format(index=i))
+            if position == self.currentVideoDuration:
+                for i in range(0,absSec+1):
+                    os.remove("pics/HM{index}.svg".format(index=i))
 
     def durationChanged(self, duration):
         self.ProgressBar.setRange(0, duration)
