@@ -7,19 +7,25 @@ import os
 import glob
 
 
+
 class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
     def __init__(self):
         super(App, self).__init__()
         self.setupUi(self)
 
+        self.errorLabel = QtWidgets.QMessageBox
         self.mediaPlayer = Media.QMediaPlayer(None, Media.QMediaPlayer.VideoSurface)
         self.mediaPlayer.setVideoOutput(self.VideoPlayer)
         self.pathToFile = None
         self.pathToCSV = None
         self.pausedPosition = 0
+
         self.currentVideoDuration = 0
-        self.heatMapIndex = 0
+        self.heatMapIndex = None
+        self.tsDevice = None
+
         self.mediaControl = Media.QMediaControl(self.mediaPlayer)
+        self.heatMap.setScaledContents(True)
 
         self.PlayButton.clicked.connect(self.play)
         self.PauseButton.clicked.connect(self.pause)
@@ -29,13 +35,10 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
         self.mediaPlayer.durationChanged.connect(self.durationChanged)
         self.mediaPlayer.positionChanged.connect(self.positionChanged)
         self.mediaPlayer.error.connect(self.handleError)
+        self.mediaPlayer.setNotifyInterval(500)
 
-        self.ProgressBar.sliderMoved.connect(self.progressChange)
         self.ProgressBar.sliderReleased.connect(self.progressBarValueChange)
 
-
-    def progressChange(self):
-        pass
 
     def progressBarValueChange(self):
         newPos = self.ProgressBar.value()
@@ -45,14 +48,18 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
             self.pausedPosition = newPos
 
     def changeHeatMapdisplay(self):
-        hmc.plot_pressure(self.df, self.heatMapIndex)
-        # self.heatMap.setScaledContents(True)
-        self.heatMap.setPixmap(QPixmap("pics/HM{index}.svg".format(index=self.heatMapIndex)))
+        if self.heatMapIndex is not None:
+            hmc.plot_pressure(self.df, self.heatMapIndex)
+            self.heatMap.setPixmap(QPixmap("pics/HM{index}.svg".format(index=self.heatMapIndex)))
+        else:
+            self.heatMap.setText("ERROR: NO DATA FOUND")
 
     def generateDF(self):
         self.df = hmc.createDF(self.pathToCSV)
+        self.tsDevice = list(self.df["ts_device"])
 
     def positionChanged(self, position):
+
         if self.mediaPlayer.StoppedState == self.mediaPlayer.state():
             pass
         else:
@@ -78,13 +85,24 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
                 durH = int(durMin/60)
                 durMin = durMin % 60
             self.progressLabel.setText("{posH}:{posMin}:{posSec}/{durH}:{durMin}:{durSec}".
-                                       format(posH=posH, posMin=posMin, posSec=posSec, durH=durH, durMin=durMin, durSec=durSec))
-            self.heatMapIndex = absSec
+                                       format(posH=posH, posMin=posMin, posSec=posSec,
+                                              durH=durH, durMin=durMin, durSec=durSec))
+            self.heatMapIndex = None
+            for value in self.tsDevice:
+                if position-250 <= value <= position+250:
+                    self.heatMapIndex = self.tsDevice.index(value)
+                    break
+
+
             self.changeHeatMapdisplay()
 
             if position == self.currentVideoDuration:
+                self.pausedPosition = 0
                 for i in range(0,absSec+1):
-                    os.remove("pics/HM{index}.svg".format(index=i))
+                    try:
+                        os.remove("pics/HM{index}.svg".format(index=i))
+                    except FileNotFoundError:
+                        pass
 
     def durationChanged(self, duration):
         self.ProgressBar.setRange(0, duration)
@@ -94,15 +112,20 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
         self.mediaPlayer.setPosition(position)
 
     def handleError(self):
-        self.playButton.setEnabled(False)
-        self.errorLabel.setText("Error: " + self.mediaPlayer.errorString())
+        if self.mediaPlayer.errorString() == "":
+            self.errorLabel.information(None, "ERROR", "Error: Unkonwn error(no error message")
+            #self.errorLabel.setText("Error: unknown error (no error message)")
+            self.errorLabel.show()
+        else:
+            self.errorLabel.information(None, "ERROR", "Error: "+self.mediaPlayer.errorString())
+
 
 
     def tr(self,text):
         return QtCore.QObject.tr(self, text)
 
     def addVideo(self):
-        self.pathToFile = QtWidgets.QFileDialog.getOpenFileName(self,self.tr("Choose Video file"), self.tr("~/Desktop/"), self.tr("Videos (*.mp4)"))[0]
+        self.pathToFile = QtWidgets.QFileDialog.getOpenFileName(self, self.tr("Choose Video file"), self.tr("~/Desktop/"), self.tr("Videos (*.mp4)"))[0]
 
 
     def play(self):
@@ -113,7 +136,6 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
             self.addVideo()
             self.video = Media.QMediaContent(QtCore.QUrl.fromLocalFile(self.pathToFile))
             self.mediaPlayer.setMedia(self.video)
-
         else:
             self.video = Media.QMediaContent(QtCore.QUrl.fromLocalFile(self.pathToFile))
             self.mediaPlayer.setMedia(self.video)
@@ -133,9 +155,11 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
     def addHeatMap(self):
         self.pathToCSV = QtWidgets.QFileDialog.getOpenFileName(self,self.tr("Choose a csv file"), self.tr("~/Desktop/"), self.tr("CSV (*.csv)"))[0]
         self.generateDF()
+        self.heatMapIndex = 0
 
 
 if __name__ == '__main__':
+
     app = QtWidgets.QApplication()
     qtApp = App()
     qtApp.show()
