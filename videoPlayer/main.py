@@ -88,10 +88,17 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
                                        format(posH=posH, posMin=posMin, posSec=posSec,
                                               durH=durH, durMin=durMin, durSec=durSec))
             self.heatMapIndex = None
+            closestValue = None
+
             for value in self.tsDevice:
-                if position-250 <= value <= position+250:
-                    self.heatMapIndex = self.tsDevice.index(value)
-                    break
+                if position-1500 <= value <= position+1500:
+                    if closestValue is None:
+                        closestValue = value
+                        self.heatMapIndex = self.tsDevice.index(value)
+                    elif abs(value-position) < abs(closestValue-position):
+                        closestValue = value
+                        self.heatMapIndex = self.tsDevice.index(value)
+
 
 
             self.changeHeatMapdisplay()
