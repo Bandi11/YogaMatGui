@@ -51,13 +51,13 @@ def plot_pressure(df, index):
 
 
     # Draw the heatmap with the mask and correct aspect ratio
-    plt.subplots(figsize=(20, 20))
-    plt.tick_params(axis='both', which='major', labelsize=25)
+    plt.subplots(figsize=(10,12))
+    plt.tick_params(axis='both', which='major', labelsize=11)
     heatMap = sns.heatmap(df_cells, cmap=cmap, vmax=255.0, center=0,
                 square=True, linewidths=.5, cbar_kws={"shrink": .5}, label="big")
     heatMap.set_title('Frame = ' + str(index) +
                       ',Datetime = ' + str(df.datetime[index]) +
-                      ', sum_pressure = ' + str(sum_pressure(df, index)),fontsize=20)
+                      ', sum_pressure = ' + str(sum_pressure(df, index)),fontsize=11)
 
     fig = heatMap.get_figure()
     fig.savefig("pics/HM{index}.svg".format(index=index), bbox_inches='tight')

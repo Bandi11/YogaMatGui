@@ -25,7 +25,7 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
         self.tsDevice = None
 
         self.mediaControl = Media.QMediaControl(self.mediaPlayer)
-        self.heatMap.setScaledContents(True)
+        self.mediaPlayer.setNotifyInterval(500)
 
         self.PlayButton.clicked.connect(self.play)
         self.PauseButton.clicked.connect(self.pause)
@@ -35,7 +35,6 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
         self.mediaPlayer.durationChanged.connect(self.durationChanged)
         self.mediaPlayer.positionChanged.connect(self.positionChanged)
         self.mediaPlayer.error.connect(self.handleError)
-        self.mediaPlayer.setNotifyInterval(500)
 
         self.ProgressBar.sliderReleased.connect(self.progressBarValueChange)
 
@@ -60,9 +59,9 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
 
     def positionChanged(self, position):
 
-        if self.mediaPlayer.StoppedState == self.mediaPlayer.state():
-            pass
-        else:
+        #if self.mediaPlayer.StoppedState == self.mediaPlayer.state():
+         #   pass
+        #else:
             self.ProgressBar.setValue(position)
             absSec = int(position/1000)
             posSec = absSec
@@ -120,11 +119,11 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
 
     def handleError(self):
         if self.mediaPlayer.errorString() == "":
-            self.errorLabel.information(None, "ERROR", "Error: Unkonwn error(no error message")
-            #self.errorLabel.setText("Error: unknown error (no error message)")
-            self.errorLabel.show()
+            self.errorLabel.information(None, "ERROR", "Error: Unkonwn error(no error message)"+
+                                        "\n ErrorState:"+str(self.mediaPlayer.error()))
         else:
-            self.errorLabel.information(None, "ERROR", "Error: "+self.mediaPlayer.errorString())
+            self.errorLabel.information(None, "ERROR", "Error: "+self.mediaPlayer.errorString()+
+                                        "\n ErrorState:"+self.mediaPlayer.error())
 
 
 
@@ -132,7 +131,9 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
         return QtCore.QObject.tr(self, text)
 
     def addVideo(self):
-        self.pathToFile = QtWidgets.QFileDialog.getOpenFileName(self, self.tr("Choose Video file"), self.tr("~/Desktop/"), self.tr("Videos (*.mp4)"))[0]
+        self.pathToFile = QtWidgets.QFileDialog.getOpenFileName(self, self.tr("Choose Video file"),
+                                                                self.tr("~/Desktop/"),
+                                                                self.tr("Videos (*.mp4 *.avi)"))[0]
 
 
     def play(self):
@@ -160,7 +161,8 @@ class App(GUI.Ui_MainWindow, QtWidgets.QMainWindow):
         self.positionChanged(0)
 
     def addHeatMap(self):
-        self.pathToCSV = QtWidgets.QFileDialog.getOpenFileName(self,self.tr("Choose a csv file"), self.tr("~/Desktop/"), self.tr("CSV (*.csv)"))[0]
+        self.pathToCSV = QtWidgets.QFileDialog.getOpenFileName(self,self.tr("Choose a csv file"),
+                                                               self.tr("~/Desktop/"), self.tr("CSV (*.csv)"))[0]
         self.generateDF()
         self.heatMapIndex = 0
 
